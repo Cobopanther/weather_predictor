@@ -1,0 +1,204 @@
+<!-- predict.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='predict.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { background: #e3eafc; font-family: 'Segoe UI', sans-serif; margin: 0; }
+    .dashboard-container { display: flex; min-height: 100vh; }
+    .sidebar { background: #1976d2; color: #fff; width: 220px; padding: 2rem 1rem; display: flex; flex-direction: column; align-items: center; }
+    .sidebar h2 { margin-bottom: 2rem; font-size: 1.5rem; letter-spacing: 1px; }
+    .sidebar img { width: 80px; margin-bottom: 1.5rem; }
+    .sidebar .fact { background: #1565c0; border-radius: 8px; padding: 1rem; font-size: 1rem; margin-top: 2rem; text-align: center; }
+    .main-content { flex: 1; padding: 2.5rem 2rem; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+    .header h1 { margin: 0; font-size: 2.2rem; color: #1976d2; }
+    .weather-card { background: #fff; border-radius: 18px; box-shadow: 0 4px 24px #0001; padding: 2rem; max-width: 600px; margin: 0 auto; }
+    .weather-card .weather-icon { display: flex; justify-content: center; margin-bottom: 1.5rem; }
+    .weather-card .weather-icon img { width: 90px; height: 90px; }
+    .weather-table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
+    .weather-table th, .weather-table td { padding: 0.7rem 1rem; text-align: left; }
+    .weather-table th { background: #e3f2fd; color: #1976d2; font-weight: 600; }
+    .weather-table tr:nth-child(even) { background: #f6fafd; }
+    .summary { display: flex; justify-content: space-between; margin-bottom: 2rem; }
+    .summary-card { background: #e3f2fd; color: #1976d2; border-radius: 10px; padding: 1rem 1.5rem; flex: 1; margin: 0 0.5rem; text-align: center; font-size: 1.1rem; }
+    .summary-card:first-child { margin-left: 0; }
+    .summary-card:last-child { margin-right: 0; }
+    .predict-again { display: block; margin: 2rem auto 0; padding: 0.7rem 2rem; background: #1976d2; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1rem; }
+    @media (max-width: 900px) { .dashboard-container { flex-direction: column; } .sidebar { width: 100%; flex-direction: row; justify-content: space-between; padding: 1rem; } .sidebar h2, .sidebar img, .sidebar .fact { display: none; } .main-content { padding: 1rem; } }
+    @media (max-width: 600px) { .weather-card { padding: 1rem; } .summary { flex-direction: column; } .summary-card { margin: 0.5rem 0; } }
+  </style>
+</head>
+<body class="dark-mode">
+  <button id="toggleMode" class="toggle-mode-btn">☀️</button>
+  <div class="dashboard-container">
+    <!-- Sidebar with Navigation -->
+    <div class="sidebar">
+      <div class="sidebar-header" style="display: flex; align-items: center; gap: 1rem; justify-content: center;">
+        
+      </div>
+      
+      <!-- Navigation in Sidebar -->
+      <nav class="sidebar-nav">
+        <div class="nav-links">
+          <a href="https://lapis-glistening-silverfish.glitch.me" class="nav-btn">🏠 Home</a>
+          <a href="http://127.0.0.1:5000" class="nav-btn active">🔮 Predict Weather</a>
+          <a href="https://lapis-glistening-silverfish.glitch.me/about.html" class="nav-btn">ℹ️ About Us</a>
+        </div>
+      </nav>
+    </div>
+    
+    <!-- Main Content Area -->
+    <div class="main-content">
+      {% if not prediction and not error %}
+        <!-- Centered Input Dashboard -->
+        <div class="input-dashboard">
+          <div class="input-card">
+            <img src="static/images/cloudy.png" alt="Logo" class="sidebar-logo">
+            <h1>Weather Prediction</h1>
+            <p>Select a date to predict the weather</p>
+            <form method="POST" action="/predict" id="predictForm">
+              <div class="input-group">
+                <input type="date" name="date" required>
+                <button type="submit">🔍 Predict Weather</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      {% endif %}
+      
+      {% if prediction %}
+        <div class="dashboard-grid">
+          <div class="weather-card main-prediction">
+            <div class="weather-icon">
+              {% if 'rain' in prediction.condition|lower %}
+                <img src="{{ url_for('static', filename='images/cloudy.png') }}" alt="Rainy">
+              {% elif 'cloud' in prediction.condition|lower %}
+                <img src="{{ url_for('static', filename='images/cloudy.png') }}" alt="Cloudy">
+              {% else %}
+                <img src="{{ url_for('static', filename='images/clear.png') }}" alt="Weather">
+              {% endif %}
+            </div>
+            <h2 style="text-align:center; margin-bottom:1.5rem;">Predicted Weather for {{ prediction.date }}</h2>
+            <div class="summary summary-grid">
+              <div class="summary-card"><span class="summary-icon">🌡️</span><div>{{ prediction.temp }}°C</div><div>Avg Temperature</div></div>
+              <div class="summary-card"><span class="summary-icon">💧</span><div>{{ prediction.humidity }}%</div><div>Humidity</div></div>
+              <div class="summary-card"><span class="summary-icon">☔</span><div>{{ prediction.will_rain }}</div><div>Will it Rain?</div></div>
+            </div>
+            <table class="weather-table">
+              <tr><th>Parameter</th><th>Value</th></tr>
+              <tr><td>Temperature</td><td>{{ prediction.temp }} °C</td></tr>
+              <tr><td>Max Temp</td><td>{{ prediction.tempmax }} °C</td></tr>
+              <tr><td>Min Temp</td><td>{{ prediction.tempmin }} °C</td></tr>
+              <tr><td>Humidity</td><td>{{ prediction.humidity }} %</td></tr>
+              <tr><td>Windspeed</td><td>{{ prediction.windspeed }} km/h</td></tr>
+              <tr><td>Precipitation</td><td>{{ prediction.precip }} mm</td></tr>
+              <tr><td>Condition</td><td>{{ prediction.condition }}</td></tr>
+              <tr><td>Will it Rain?</td><td>{{ prediction.will_rain }}</td></tr>
+            </table>
+            <canvas id="tempChart" class="chart-canvas" width="420" height="200"></canvas>
+            <button class="predict-again">Predict Another Date</button>
+          </div>
+          <div class="weather-card forecast-card">
+            <h2 style="text-align:center; margin-bottom:1.5rem;">7-Day Forecast</h2>
+            <table class="weather-table forecast-table">
+              <tr>
+                <th>Date</th>
+                <th>Temp (°C)</th>
+                <th>Max</th>
+                <th>Min</th>
+                <th>Humidity (%)</th>
+                <th>Rain?</th>
+                <th>Condition</th>
+              </tr>
+              {% for day in forecast %}
+              <tr class="forecast-row {% if day.date == prediction.date %}selected-row{% endif %}">
+                <td>{{ day.date }}</td>
+                <td>{{ day.temp }}</td>
+                <td>{{ day.tempmax }}</td>
+                <td>{{ day.tempmin }}</td>
+                <td>{{ day.humidity }}</td>
+                <td>{{ day.will_rain }}</td>
+                <td>{{ day.condition }}</td>
+              </tr>
+              {% endfor %}
+            </table>
+          </div>
+        </div>
+        <div class="forecast-chart-section">
+          <canvas id="forecastChart" class="chart-canvas" width="1100" height="320"></canvas>
+        </div>
+        <script>
+          // Main day bar chart
+          const ctx = document.getElementById('tempChart').getContext('2d');
+          new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: ['Min Temp', 'Avg Temp', 'Max Temp'],
+              datasets: [{
+                label: 'Temperature (°C)',
+                data: [{{ prediction.tempmin }}, {{ prediction.temp }}, {{ prediction.tempmax }}],
+                backgroundColor: ['#90caf9', '#42a5f5', '#1976d2']
+              }]
+            },
+            options: {
+              plugins: { legend: { display: false } },
+              scales: { y: { beginAtZero: true } }
+            }
+          });
+          // 7-day forecast line chart
+          const forecastLabels = [{% for day in forecast %}'{{ day.date }}',{% endfor %}];
+          const forecastTemps = [{% for day in forecast %}{{ day.temp }},{% endfor %}];
+          const forecastMax = [{% for day in forecast %}{{ day.tempmax }},{% endfor %}];
+          const forecastMin = [{% for day in forecast %}{{ day.tempmin }},{% endfor %}];
+          const ctx2 = document.getElementById('forecastChart').getContext('2d');
+          new Chart(ctx2, {
+            type: 'line',
+            data: {
+              labels: forecastLabels,
+              datasets: [
+                { label: 'Avg Temp', data: forecastTemps, borderColor: '#1976d2', backgroundColor: '#1976d220', fill: true, tension: 0.3, pointRadius: 5, pointHoverRadius: 8 },
+                { label: 'Max Temp', data: forecastMax, borderColor: '#ef5350', backgroundColor: '#ef535020', fill: false, tension: 0.3, pointRadius: 5, pointHoverRadius: 8 },
+                { label: 'Min Temp', data: forecastMin, borderColor: '#42a5f5', backgroundColor: '#42a5f520', fill: false, tension: 0.3, pointRadius: 5, pointHoverRadius: 8 }
+              ]
+            },
+            options: {
+              plugins: { legend: { display: true, position: 'top' } },
+              scales: {
+                y: { beginAtZero: false, title: { display: true, text: 'Temperature (°C)' } },
+                x: { title: { display: true, text: 'Date' } }
+              }
+            }
+          });
+        </script>
+        
+        <script>
+          // Predict Another Date button
+          const predictAgainBtn = document.querySelector('.predict-again');
+          predictAgainBtn.onclick = () => {
+            window.location.href = 'http://127.0.0.1:5000';
+          };
+        </script>
+      {% elif error %}
+        <div class="weather-card" style="color:#d32f2f; text-align:center;">{{ error }}</div>
+      {% endif %}
+    </div>
+  </div>
+  
+  <script>
+    // Dark/Light mode toggle for initial page load
+    const toggleBtn = document.getElementById('toggleMode');
+    if (toggleBtn) {
+      function setMode(dark) {
+        document.body.classList.toggle('dark-mode', dark);
+        toggleBtn.textContent = dark ? '☀️' : '🌙';
+      }
+      toggleBtn.onclick = () => setMode(!document.body.classList.contains('dark-mode'));
+    }
+  </script>
+</body>
+</html>
